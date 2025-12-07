@@ -4,10 +4,11 @@ import fs from "fs";
 import path from "path";
 
 class WeComPusher {
-  constructor(corpid, corpsecret) {
+  constructor(corpid, corpsecret, agentid) {
     if (!corpid || !corpsecret) {
       throw new Error("corpid and corpsecret are required.");
     }
+    this.agentid = agentid;
     this.corpid = corpid;
     this.corpsecret = corpsecret;
     this.accessToken = null;
@@ -86,7 +87,7 @@ class WeComPusher {
     }
   }
 
-  async sendMessage(agentid, touser, msgtype, payload) {
+  async sendMessage(touser, msgtype, payload) {
     const accessToken = await this.getAccessToken();
     if (!accessToken) {
       console.error("Failed to get access token, cannot send message.");
@@ -96,7 +97,7 @@ class WeComPusher {
     const body = {
       touser: touser,
       msgtype: msgtype,
-      agentid: agentid,
+      agentid: this.agentid,
       [msgtype]: payload,
     };
 
@@ -127,7 +128,6 @@ class WeComPusher {
   }
 
   async sendTextCardMessage(
-    agentid,
     touser,
     title,
     description,
@@ -140,17 +140,17 @@ class WeComPusher {
       url: url,
       btntxt: btntxt,
     };
-    return this.sendMessage(agentid, touser, "textcard", payload);
+    return this.sendMessage(touser, "textcard", payload);
   }
 
-  async sendText(agentid, touser, content) {
+  async sendText(touser, content) {
     const payload = {
       content: content,
     };
-    return this.sendMessage(agentid, touser, "text", payload);
+    return this.sendMessage(touser, "text", payload);
   }
 
-  async sendImage(agentid, touser, filePath) {
+  async sendImage(touser, filePath) {
     const media_id = await this.uploadMedia(filePath, "image");
     if (!media_id) {
       return null;
@@ -158,10 +158,10 @@ class WeComPusher {
     const payload = {
       media_id: media_id,
     };
-    return this.sendMessage(agentid, touser, "image", payload);
+    return this.sendMessage(touser, "image", payload);
   }
 
-  async sendVoice(agentid, touser, filePath) {
+  async sendVoice(touser, filePath) {
     const media_id = await this.uploadMedia(filePath, "voice");
     if (!media_id) {
       return null;
@@ -169,10 +169,10 @@ class WeComPusher {
     const payload = {
       media_id: media_id,
     };
-    return this.sendMessage(agentid, touser, "voice", payload);
+    return this.sendMessage(touser, "voice", payload);
   }
 
-  async sendVideo(agentid, touser, filePath, title = "", description = "") {
+  async sendVideo(touser, filePath, title = "", description = "") {
     const media_id = await this.uploadMedia(filePath, "video");
     if (!media_id) {
       return null;
@@ -182,10 +182,10 @@ class WeComPusher {
       title: title,
       description: description,
     };
-    return this.sendMessage(agentid, touser, "video", payload);
+    return this.sendMessage(touser, "video", payload);
   }
 
-  async sendFile(agentid, touser, filePath) {
+  async sendFile(touser, filePath) {
     const media_id = await this.uploadMedia(filePath, "file");
     if (!media_id) {
       return null;
@@ -193,7 +193,7 @@ class WeComPusher {
     const payload = {
       media_id: media_id,
     };
-    return this.sendMessage(agentid, touser, "file", payload);
+    return this.sendMessage(touser, "file", payload);
   }
 }
 
