@@ -1,4 +1,7 @@
 import fetch from "node-fetch";
+import FormData from "form-data";
+import fs from "fs";
+import path from "path";
 
 class WeComPusher {
   constructor(corpid, corpsecret) {
@@ -8,7 +11,7 @@ class WeComPusher {
     this.corpid = corpid;
     this.corpsecret = corpsecret;
     this.accessToken = null;
-    this.tokenExpiresAt = 0; 
+    this.tokenExpiresAt = 0; // Unix timestamp in milliseconds
   }
 
   async getAccessToken() {
@@ -43,14 +46,47 @@ class WeComPusher {
     }
   }
 
-  async sendTextCardMessage(
-    agentid,
-    touser,
-    title,
-    description,
-    url = "https://",
-    btntxt = "详情"
-  ) {
+  async uploadMedia(filePath, type) {
+    const accessToken = await this.getAccessToken();
+    if (!accessToken) {
+      console.error("Failed to get access token, cannot upload media.");
+      return null;
+    }
+
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
+      return null;
+    }
+
+    const form = new FormData();
+    form.append("media", fs.createReadStream(filePath), {
+      filename: path.basename(filePath),
+    });
+
+    const uploadUrl = `https://qyapi.weixin.qq.com/cgi-bin/media/upload?access_token=${accessToken}&type=${type}`;
+
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        body: form,
+        headers: form.getHeaders(),
+      });
+      const data = await response.json();
+
+      if (data.errcode === 0) {
+        console.log(`Media uploaded successfully. Media ID: ${data.media_id}`);
+        return data.media_id;
+      } else {
+        console.error("Failed to upload media:", data.errmsg);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error uploading media:", error);
+      return null;
+    }
+  }
+
+  async sendMessage(agentid, touser, msgtype, payload) {
     const accessToken = await this.getAccessToken();
     if (!accessToken) {
       console.error("Failed to get access token, cannot send message.");
@@ -59,14 +95,9 @@ class WeComPusher {
 
     const body = {
       touser: touser,
-      msgtype: "textcard",
+      msgtype: msgtype,
       agentid: agentid,
-      textcard: {
-        title: title,
-        description: description,
-        url: url,
-        btntxt: btntxt,
-      },
+      [msgtype]: payload,
     };
 
     const apiUrl = `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${accessToken}`;
@@ -81,15 +112,88 @@ class WeComPusher {
       });
       const result = await response.json();
       if (result.errcode === 0) {
-        console.log("WeCom textcard message sent successfully.");
+        console.log(`WeCom ${msgtype} message sent successfully.`);
       } else {
-        console.error("Failed to send WeCom textcard message:", result.errmsg);
+        console.error(
+          `Failed to send WeCom ${msgtype} message:`,
+          result.errmsg
+        );
       }
       return result;
     } catch (error) {
-      console.error("Error sending WeCom textcard message:", error);
+      console.error(`Error sending WeCom ${msgtype} message:`, error);
       return null;
     }
+  }
+
+  async sendTextCardMessage(
+    agentid,
+    touser,
+    title,
+    description,
+    url = "https://",
+    btntxt = "详情"
+  ) {
+    const payload = {
+      title: title,
+      description: description,
+      url: url,
+      btntxt: btntxt,
+    };
+    return this.sendMessage(agentid, touser, "textcard", payload);
+  }
+
+  async sendText(agentid, touser, content) {
+    const payload = {
+      content: content,
+    };
+    return this.sendMessage(agentid, touser, "text", payload);
+  }
+
+  async sendImage(agentid, touser, filePath) {
+    const media_id = await this.uploadMedia(filePath, "image");
+    if (!media_id) {
+      return null;
+    }
+    const payload = {
+      media_id: media_id,
+    };
+    return this.sendMessage(agentid, touser, "image", payload);
+  }
+
+  async sendVoice(agentid, touser, filePath) {
+    const media_id = await this.uploadMedia(filePath, "voice");
+    if (!media_id) {
+      return null;
+    }
+    const payload = {
+      media_id: media_id,
+    };
+    return this.sendMessage(agentid, touser, "voice", payload);
+  }
+
+  async sendVideo(agentid, touser, filePath, title = "", description = "") {
+    const media_id = await this.uploadMedia(filePath, "video");
+    if (!media_id) {
+      return null;
+    }
+    const payload = {
+      media_id: media_id,
+      title: title,
+      description: description,
+    };
+    return this.sendMessage(agentid, touser, "video", payload);
+  }
+
+  async sendFile(agentid, touser, filePath) {
+    const media_id = await this.uploadMedia(filePath, "file");
+    if (!media_id) {
+      return null;
+    }
+    const payload = {
+      media_id: media_id,
+    };
+    return this.sendMessage(agentid, touser, "file", payload);
   }
 }
 
