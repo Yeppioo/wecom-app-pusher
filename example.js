@@ -1,28 +1,19 @@
-import WeComPusher from "./index.js";
+import WeComPusher from "wecom-app-pusher";
 
-const corpid = "您的企业ID";
-const corpsecret = "您的应用Secret";
+const corpid = "xxx";
+const corpsecret = "xxx";
+const agentid = "1000001";
 
-const pusher = new WeComPusher(corpid, corpsecret);
+const pusher = new WeComPusher(corpid, corpsecret, agentid);
 
 (async () => {
-  const agentid = "您的应用AgentId";
-  const touser = "@all";
+  const touser = "yiiko";
   const title = "早上好提醒！";
   const description = `今天天气晴朗，适合外出。`;
   const redirectUrl = "https://example.com/more-info";
 
-  const result = await pusher.sendTextCardMessage(
-    agentid,
-    touser,
-    title,
-    description,
-    redirectUrl
-  );
-
-  if (result && result.errcode === 0) {
-    console.log("消息发送成功！");
-  } else {
-    console.error("消息发送失败。");
-  }
+  await pusher.sendTextCardMessage(touser, title, description, redirectUrl);
+  await pusher.sendText(touser, description);
+  await pusher.sendImage(touser, "D:/Temp/a.png");
+  await pusher.sendFile(touser, "D:/Temp/a.docx");
 })();
