@@ -1,0 +1,14 @@
+{
+  "name": "wecom-app-pusher",
+  "version": "1.0.0",
+  "description": "push message to wecom app",
+  "license": "ISC",
+  "author": "yiiko",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+  },
+  "dependencies": {
+    "node-fetch": "^3.0.0"
+  }
+}
